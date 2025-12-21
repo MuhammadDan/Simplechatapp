@@ -1,3 +1,4 @@
+// routes/chatRoutes.js - UPDATED (Remove health check)
 async function chatRoutes(fastify) {
   // GET /messages -> list recent messages (latest first)
   fastify.get("/messages", async (req, reply) => {
@@ -8,8 +9,8 @@ async function chatRoutes(fastify) {
     return messages;
   });
 
-  // Health check
-  fastify.get("/health", async () => ({ ok: true }));
+  // REMOVE THIS HEALTH CHECK (Already in server.js)
+  // fastify.get("/health", async () => ({ ok: true }));
 }
 
 module.exports = chatRoutes;

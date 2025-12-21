@@ -1,21 +1,52 @@
-version: "3.9"
-
 services:
-  app:
+  app1:
     build: .
-    container_name: Dockerized_ChatApp
-    restart: always
+    container_name: Dockerized_ChatApp_3000
+    restart: unless-stopped
     ports:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      - PORT=3000
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chat-network
+
+  app2:
+    build: .
+    container_name: Dockerized_ChatApp_3001
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      - PORT=3001
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chat-network
 
   db:
     image: postgres:15
     container_name: Dockerized_ChatAppdb
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DB: chatdb
@@ -24,15 +55,29 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - chat-network
 
   adminer:
     image: adminer
     container_name: Dockerized_Adminer
-    restart: always
+    restart: unless-stopped
     ports:
       - "8080:8080"
     depends_on:
       - db
+    networks:
+      - chat-network
 
 volumes:
   pgdata:
+
+networks:
+  chat-network:
+    driver: bridge

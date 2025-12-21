@@ -2,87 +2,159 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Simple Chat</title>
+  <title>Chat App with Adapter Pattern</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 24px auto; }
-    #messages { list-style: none; padding: 0; }
-    #messages li { margin: 6px 0; padding: 8px 10px; border-radius: 8px; background: #f5f5f5; }
-    .me { background: #d7f7d7; }
-    .meta { color: #666; font-size: 12px; margin-left: 4px; }
-    .row { display: flex; gap: 8px; margin: 8px 0; }
-    input { flex: 1; padding: 8px; }
-    button { padding: 8px 12px; }
+    body { 
+      font-family: system-ui, sans-serif; 
+      max-width: 640px; 
+      margin: 24px auto; 
+      padding: 20px;
+      background: #f8f9fa;
+    }
+    #messages { 
+      list-style: none; 
+      padding: 0; 
+      margin: 20px 0;
+      max-height: 500px;
+      overflow-y: auto;
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    #messages li { 
+      margin: 10px 0; 
+      padding: 12px 15px; 
+      border-radius: 15px; 
+      background: #f5f5f5;
+      border-left: 4px solid #ddd;
+      transition: all 0.3s ease;
+    }
+    #messages li.me { 
+      background: #d7f7d7; 
+      border-left-color: #28a745;
+      margin-left: 40px;
+    }
+    #messages li.pending { 
+      background: #fff3cd; 
+      border-left-color: #ffc107;
+      opacity: 0.8;
+    }
+    #messages li.error { 
+      background: #f8d7da; 
+      border-left-color: #dc3545;
+    }
+    .meta { 
+      color: #666; 
+      font-size: 11px; 
+      margin-top: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status { 
+      font-size: 10px; 
+      color: #888; 
+      font-weight: 500;
+    }
+    .server-time {
+      font-size: 9px;
+      color: #aaa;
+    }
+    .row { 
+      display: flex; 
+      gap: 10px; 
+      margin: 15px 0; 
+      align-items: center;
+    }
+    input { 
+      flex: 1; 
+      padding: 12px 15px; 
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+    button { 
+      padding: 12px 20px; 
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    #notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      border-radius: 8px;
+      background: #28a745;
+      color: white;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 1000;
+      font-weight: 500;
+      max-width: 300px;
+    }
+    #notification.error { 
+      background: #dc3545; 
+    }
+    h2 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .container {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    #typing-indicator {
+      animation: fadeInOut 1.5s infinite;
+    }
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
   </style>
 </head>
 <body>
-  <h2>Chat App</h2>
+  <div class="container">
+    <h2>💬 Chat App with Adapter Pattern</h2>
+    
+    <div id="notification"></div>
 
-  <div class="row">
-    <input id="username" placeholder="Enter your name" />
-    <button id="set-username">Set name</button>
-  </div>
+    <div class="row">
+      <input id="username" placeholder="Enter your name" />
+      <button id="set-username">Set Name</button>
+    </div>
 
-  <ul id="messages"></ul>
+    <ul id="messages"></ul>
 
-  <div class="row">
-    <input id="m" autocomplete="off" placeholder="Type a message..." />
-    <button id="send">Send</button>
+    <div class="row">
+      <input id="m" autocomplete="off" placeholder="Type a message..." />
+      <button id="send">Send</button>
+    </div>
+
+    <div style="margin-top: 20px; font-size: 12px; color: #666; text-align: center;">
+      <p>🛡️ Features: Adapter Pattern • Acknowledgement • Resilience • Socket Adapter</p>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-
-    let myName = localStorage.getItem("chat_username") || "";
-    const usernameInput = document.getElementById("username");
-    const messagesEl = document.getElementById("messages");
-    const msgInput = document.getElementById("m");
-
-    if (myName) usernameInput.value = myName;
-
-    document.getElementById("set-username").onclick = () => {
-      const name = usernameInput.value.trim();
-      if (!name) return alert("Please enter a name.");
-      myName = name;
-      localStorage.setItem("chat_username", myName);
-      alert("Name set: " + myName);
-    };
-
-    document.getElementById("send").onclick = () => {
-      const text = msgInput.value.trim();
-      const username = (myName || usernameInput.value || "Anonymous").trim();
-      if (!text) return;
-      socket.emit("chat message", { username, text });
-      msgInput.value = "";
-    };
-
-    socket.on("chat message", (msg) => {
-      const li = document.createElement("li");
-      if (msg.sender === myName) li.classList.add("me");
-      li.textContent = `${msg.sender}: ${msg.text}`;
-      const meta = document.createElement("span");
-      meta.className = "meta";
-      meta.textContent = msg.createdAt ? ` • ${new Date(msg.createdAt).toLocaleTimeString()}` : "";
-      li.appendChild(meta);
-      messagesEl.appendChild(li);
-    });
-
-    // Optional: load recent messages
-    fetch("/messages")
-      .then((r) => r.json())
-      .then((items) => {
-        items.reverse().forEach((m) => {
-          const li = document.createElement("li");
-          if (m.username === myName) li.classList.add("me");
-          li.textContent = `${m.username}: ${m.text}`;
-          const meta = document.createElement("span");
-          meta.className = "meta";
-          meta.textContent = m.createdAt ? ` • ${new Date(m.createdAt).toLocaleTimeString()}` : "";
-          li.appendChild(meta);
-          messagesEl.appendChild(li);
-        });
-      })
-      .catch(() => {});
-  </script>
+  <script src="./script.js"></script>
 </body>
 </html>
